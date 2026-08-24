@@ -84,3 +84,41 @@ machine, paused to consider whether to touch BIOS settings at all.
 
 **Next:** Commit the fix + the new `docker-compose.yml`/`.env.example`, verify the
 container runs, open the PR, then move to step 4 (backend skeleton + Alembic).
+
+---
+
+## 2026-08-24 — Backend skeleton: db session, app factory, Alembic
+
+**Worked on:** Step 4 in full — `app/db/base.py` (shared `DeclarativeBase`),
+`app/db/session.py` (engine, `SessionLocal`, `get_db()` FastAPI dependency),
+refactored `app/main.py` from a bare module-level `app` into a `create_app()`
+factory, and wired up Alembic (`alembic init`, then pointed `env.py` at
+`settings.database_url` and `Base.metadata` instead of the generated
+placeholders).
+
+**Decisions:**
+- `Base` lives in its own file (`db/base.py`), separate from `db/session.py`,
+  so that model files and Alembic's `env.py` can import just the model
+  registry without pulling in the live engine/connection setup.
+- `main.py` keeps a module-level `app = create_app()` alongside the factory
+  function, so `uvicorn app.main:app` and the existing test's
+  `from app.main import app` keep working unchanged — the factory pattern
+  matters once routers/config start branching (steps 5+), not yet today.
+- `alembic.ini`'s hardcoded placeholder `sqlalchemy.url` was deleted rather
+  than filled in with a real value, since `alembic.ini` is committed to git;
+  the real URL is set at runtime in `env.py` from the same `Settings` object
+  the FastAPI app uses, so there's one source of truth for the DB connection
+  string instead of two.
+- `env.py` appends `backend/` to `sys.path` at the top (before importing
+  `app...`), because — unlike `pytest`, which gets this from
+  `pythonpath = ["."]` in `pyproject.toml` — the `alembic` CLI has no
+  built-in awareness of the project layout.
+
+**Problems encountered:** None blocking. Confirmed the wiring works via
+`alembic current` (no error, no revision — expected, since no models/migration
+scripts exist yet) against the Docker Compose Postgres container.
+
+**Next:** Push `feature/backend-skeleton`, open the PR, verify the
+`backend-tests` CI check passes, self-review, squash-merge, delete the branch,
+sync local `main`. Then step 5: Beans vertical slice (model → schema → router
+→ service → tests, one PR).

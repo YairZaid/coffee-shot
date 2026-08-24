@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="Coffee Shot Intelligence API")
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="Coffee Shot Intelligence API")
+
+    @app.get("/health")
+    def health_check() -> dict[str, str]:
+        return {"status": "ok"}
+
+    return app
 
 
-@app.get("/health")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+app = create_app()
