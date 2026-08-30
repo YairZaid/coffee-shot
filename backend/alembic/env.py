@@ -14,6 +14,11 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app.core.config import settings
 from app.db.base import Base
 
+# Importing the models package is what actually populates Base.metadata —
+# a model only registers its table by being imported somewhere, inheriting
+# from Base alone isn't enough if the module never runs.
+import app.models  # noqa: F401
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
