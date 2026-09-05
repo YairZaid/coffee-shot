@@ -196,3 +196,149 @@ the DB table shape. Then router → service → tests, same branch/PR.
 **Still uncommitted** on `feature/beans-slice`: `app/models/` (Bean model),
 `alembic/env.py` (model import), `alembic/versions/dcd0df2f5015_add_beans_table.py`.
 Nothing committed yet this whole step — still mid-slice.
+
+---
+
+## 2026-08-27/28 — Schemas, service layer, and a git-commit rhythm
+
+**Worked on:** Wrote `app/schemas/bean.py` (`BeanBase`/`BeanCreate`/`BeanRead`,
+with `model_config = ConfigDict(from_attributes=True)` on `BeanRead` so it can
+validate directly from an ORM object, not just a dict) and
+`app/services/bean.py` (`create_bean`/`list_beans`/`get_bean`, SQLAlchemy
+2.0-style `select()`, deliberately no FastAPI imports so it stays
+independently testable). Verified `from_attributes` concretely in a live
+Python REPL (`BeanRead.model_validate(bean)` on an in-memory `Bean`, then
+showed `BeanBase.model_validate(bean)` failing without that config).
+
+**Decisions:**
+- No `BeanUpdate` schema — not scoped by the plan (Beans frontend step only
+  lists list/create/detail), avoided building for an unrequested feature.
+- Then caught up on git hygiene: 4 uncommitted logical pieces had piled up
+  (model+migration, schemas, service) with zero commits since the branch was
+  created. Split into 4 separate commits (`feat: add Bean model and beans
+  table migration`, `feat: add Bean create/read schemas`, `feat: add Bean
+  service layer`, `docs: log beans-slice progress`), run by the user
+  themselves for git practice. Clarified for future reference: **git commit**
+  (local checkpoint, cheap, do it often) vs. **PR** (branch-protection-gated
+  request to merge into `main`, opened once per finished vertical slice, not
+  per commit) are separate concepts — this repo has no "commit without ever
+  needing a PR" path except the one-time step-1 bootstrap commit.
+
+**Problems encountered:**
+- `uvicorn.exe` (the router-testing dev server) hit "An Application Control
+  policy has blocked this file" — same family of issue as the earlier
+  `alembic.exe` Permission Denied, but this time it's Windows itself (likely
+  WDAC/Smart App Control on this work machine) blocking the auto-generated
+  launcher stub, not just a Git Bash quirk. Same fix: `python -m uvicorn
+  app.main:app --reload` instead of the `.exe`. Standardizing on `python -m
+  <tool>` project-wide for anything installed as a venv console-script.
+
+**Next:** Router (`app/routers/bean.py`) — `POST /beans`, `GET /beans`,
+`GET /beans/{bean_id}`, wired into `main.py` via `app.include_router`. First
+real use of `Depends(get_db)`.
+
+---
+
+## 2026-08-29/30 — Router built and manually verified; tests started
+
+**Worked on:** Wrote and wired up the Beans router (`POST /beans` →
+`201` + `BeanRead`, `GET /beans` → `list[BeanRead]`, `GET /beans/{bean_id}`
+→ `BeanRead` or `404` via `HTTPException`). Manually verified all three
+routes end-to-end through Swagger UI (`/docs`): create returned a real
+`id`/`created_at`, list showed the created bean, get-by-id matched, and
+get-by-missing-id returned `404 {"detail": "Bean not found"}`.
+
+**Problems encountered and resolved:**
+- First `POST /beans` attempt hung, then failed with
+  `psycopg.errors.ConnectionTimeout` reaching `localhost:5432`. Root cause:
+  the Postgres container wasn't actually up yet when the request was made
+  (confirmed via `docker compose ps` showing `Up 7 seconds` right after —
+  it had just started). This was the *first* time the running app itself
+  (via `get_db` → `engine` → `psycopg`) had ever opened a real connection —
+  every earlier "it works" check (`alembic upgrade head`, the `psql \d beans`
+  inspection) used a separate connection path that didn't prove the live app
+  could reach Postgres over `localhost:5432` the same way. Fixed by
+  confirming the container was running, then retrying the same request.
+
+**Decisions — test strategy:**
+- Walked through the testing pyramid (unit/integration/E2E) and mapped this
+  project onto it explicitly, since the user wanted to understand the
+  category before writing more tests: `test_health.py` is closest to a unit
+  test (no external I/O); the new Beans tests are **integration tests** (real
+  FastAPI → service → SQLAlchemy → Postgres, nothing mocked); true unit tests
+  don't really fit yet since the service functions are thin DB wrappers with
+  no real logic to isolate — the first natural unit-test candidate will be
+  step 10's Compare feature (pure ratio/stat calculations); E2E is explicitly
+  deferred until a frontend exists, and may be skipped/minimal given the
+  timeline.
+- Chose a **real separate Postgres test database** (`coffee_shot_test`, same
+  server/credentials as dev, different DB name) over in-memory SQLite —
+  higher fidelity to production, accepted the extra setup cost (CI needs a
+  `postgres:` service block added to `ci.yml`, plus a one-time local
+  `CREATE DATABASE coffee_shot_test`). Both still pending.
+- Test isolation: after-each-test row deletion (loop over
+  `Base.metadata.sorted_tables`), not per-test transaction rollback —
+  rollback-based isolation needs SAVEPOINT handling to coexist with the
+  service layer's own `db.commit()` calls, judged as unnecessary complexity
+  at this scale.
+- Schema in the test DB is built via `Base.metadata.create_all()`/`drop_all()`
+  in a session-scoped autouse fixture, not by replaying Alembic migrations —
+  tests only need to match *current* models, not preserve history.
+
+**Current state — `backend/tests/conftest.py`, built incrementally, one
+explained piece at a time (user's explicit request this session): the test
+DB engine/session (done), the `app.dependency_overrides[get_db]` swap (done),
+the session-scoped create_all/drop_all fixture (done). Still missing: the
+per-test cleanup fixture (delete all rows after each test) — paused here
+for the night.**
+
+**Also still pending, not yet started:** create the local `coffee_shot_test`
+database (one `CREATE DATABASE` command via `docker compose exec`), add the
+`postgres:` service block + job env vars to `.github/workflows/ci.yml`, write
+`tests/test_beans.py` itself, run the suite locally, then push the branch and
+open the PR for the whole slice (6 commits so far, router not yet committed).
+
+**Uncommitted right now:** `app/main.py` (adds `app.include_router`),
+`app/routers/` (new), `tests/conftest.py` (new, partial).
+
+---
+
+## 2026-09-02 — Step 5 finished: Beans slice tests written and passing
+
+**Worked on:** Finished `tests/conftest.py` (the per-test row-cleanup fixture —
+deletes rows via `reversed(Base.metadata.sorted_tables)`, so child tables
+with foreign keys, e.g. `Shot` next slice, get cleared before their parent
+`Bean` table, avoiding FK violations), created the local `coffee_shot_test`
+database, added a `postgres:` service block + job `env:` to
+`.github/workflows/ci.yml`, and wrote `tests/test_beans.py` (create, list,
+get-by-id, get-404). All 5 tests pass locally (4 new + the existing health
+check).
+
+**Decisions:**
+- Test IDs are always read back dynamically from the create response
+  (`created["id"]`), never hardcoded — `DELETE` (used for per-test cleanup)
+  doesn't reset `beans_id_seq`, so a bean's `id` climbs across the whole test
+  run and isn't predictable ahead of time.
+- The 404 test uses a hardcoded far-away id (`999999`) rather than computing
+  "one past the current max" — collision risk is effectively zero at this
+  test suite's scale, so the extra logic isn't worth it.
+- Walked through a full "why this order, why each step depends on the last"
+  map of the remaining slice work (infra before test cases before running
+  before committing before pushing before PR) — user wanted to be able to
+  predict the next step themselves, not just follow along. Worth doing this
+  kind of explicit sequencing recap again if the same "I can't predict the
+  order" feedback comes up in a future slice.
+
+**Problems encountered:** User briefly worried `\l` inside `psql` showing
+`template0`/`template1`/`postgres` meant something had been broken by an
+accidental keypress — these are just Postgres's own built-in system
+databases, present since the container first started, not something created
+by user action. No actual problem, just first time seeing `\l` output.
+
+**Next:** Commit the remaining pieces (router, `conftest.py`,
+`test_beans.py`, `ci.yml`), push `feature/beans-slice`, open the PR covering
+the whole slice, verify the `backend-tests` CI check goes green for real
+(this is what actually proves the CI Postgres service config is correct — a
+local pass doesn't, since local Postgres is already running regardless),
+self-review, squash-merge, sync local `main`, delete the branch. That closes
+out step 5 entirely — step 6 (Shots vertical slice) starts fresh after.
