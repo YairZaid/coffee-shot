@@ -1,3 +1,12 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff.lint]
+# B008 flags calling a function as a default argument value, since defaults are
+# normally evaluated once at function-definition time. FastAPI's `Depends(...)`
+# is a deliberate, documented exception to that rule — it's how the framework's
+# dependency injection is expressed, and FastAPI re-resolves it on every request
+# rather than caching a stale result. This is a known false positive for FastAPI
+# codebases, not a real bug to fix in route code.
+ignore = ["B008"]
