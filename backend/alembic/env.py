@@ -11,6 +11,10 @@ from alembic import context
 # `import app...` work no matter what directory `alembic` is run from.
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+# Importing the models package is what actually populates Base.metadata —
+# a model only registers its table by being imported somewhere, inheriting
+# from Base alone isn't enough if the module never runs.
+import app.models  # noqa: F401
 from app.core.config import settings
 from app.db.base import Base
 
