@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import bean_router
+from app.routers import bean_router, shot_router
 
 
 def create_app() -> FastAPI:
@@ -11,6 +11,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(bean_router)
+    app.include_router(shot_router)
 
     return app
 
