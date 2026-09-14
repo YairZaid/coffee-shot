@@ -383,3 +383,167 @@ migration → schema → service → router → tests → PR), on a new
 `feature/shots-slice` branch. `Shot` will have a `bean_id` foreign key to
 `Bean` — the first real test of the `reversed(sorted_tables)` cleanup logic
 in `conftest.py` actually mattering.
+
+---
+
+## 2026-09-09 — Step 6 started: Shot model
+
+**Worked on:** Started step 6 (Shots vertical slice) on `feature/shots-slice`.
+Wrote just the `Shot` model this session, mirroring `Bean`'s structure.
+
+**Decisions:**
+- `shot_yield`, not `yield` — `yield` is a reserved Python keyword, so it
+  can't be used as a model attribute, schema field, or column name anywhere
+  in Python code (`shot.yield` is a syntax error). Applies everywhere the
+  field appears: model, schema, DB column, API payloads. Logged in
+  `docs/CONTEXT.md` alongside the earlier `rating`/`grind_time` decisions.
+- `grind_size` typed as `float`, not `int` — some grinders use fractional
+  settings, and `CONTEXT.md` describes it as "a unitless number specific to
+  the grinder," not necessarily a whole one.
+- `notes` is the only nullable field on `Shot` — everything else (dose,
+  grind_size, grind_time, shot_yield, duration, rating) is a required
+  measurement; Beans had declined an optional `notes` field entirely, but
+  `CONTEXT.md` explicitly lists `notes` for `Shot`.
+- `alembic/env.py` needed no changes this time — it already does
+  `import app.models` (the whole package), not individual model files, so
+  adding `Shot` to `app/models/__init__.py`'s re-export was enough to
+  register it on `Base.metadata`.
+
+**Problems encountered:** None. Verified the model directly (no migration
+yet) via `python -c "import app.models; print(app.models.Shot.__table__.columns.keys())"`
+— confirmed all ten columns registered correctly, `shot_yield` included.
+
+**Current state (uncommitted, on `feature/shots-slice`):**
+- New: `backend/app/models/shot.py`
+- Modified: `backend/app/models/__init__.py` (added `Shot` import/export)
+- Modified: `docs/CONTEXT.md` (added the `shot_yield` naming decision)
+- Nothing committed yet this step — paused here for the night.
+
+**Next:** `alembic revision --autogenerate -m "add shots table"` against the
+Compose Postgres container, review the generated migration by eye (first
+migration involving a foreign key — check the FK constraint and index came
+out as expected), then `alembic upgrade head`. After that: Pydantic schemas
+(`ShotCreate`/`ShotRead`) → service → router → tests, same branch/PR, one
+piece at a time.
+
+---
+
+## 2026-09-10/11 — Step 6 continued: shots table migrated
+
+**Worked on:** Generated, reviewed, and applied the Alembic migration for the
+`shots` table (`8191f7b2a8cf_add_shots_table.py`, chained after Beans'
+`dcd0df2f5015` via `down_revision`).
+
+**Command notes** (kept in more detail than usual — these are getting copied
+into Notion):
+
+- `python -m alembic revision --autogenerate -m "add shots table"` —
+  `revision` tells Alembic to create a new migration file (a numbered Python
+  script under `alembic/versions/` with an `upgrade()`/`downgrade()` pair).
+  `--autogenerate` makes Alembic diff two things instead of writing that code
+  by hand: `Base.metadata` (populated by every model `env.py` has imported —
+  `Shot` included, via `app/models/__init__.py`'s re-export) against the
+  *actual* live schema in the connected Postgres database. It writes
+  whatever DDL closes that gap. `-m "..."` is just a human-readable label
+  baked into the filename/docstring. Critically, this step only **writes a
+  file** — it does not touch the database.
+- `python -m alembic upgrade head` — actually **runs** the pending
+  migration(s) against the database `env.py` is configured to talk to,
+  bringing it from its current revision up to the newest (`head`) one. This
+  is the step that really creates the table.
+- `docker compose exec db psql -U coffee -d coffee_shot -c "\d shots"` —
+  `docker compose exec` runs a command inside the *already-running*
+  container for the `db` service (as opposed to `docker compose run`, which
+  would start a fresh one). `psql` is Postgres's own CLI client, bundled
+  inside the `postgres:16-alpine` image. `-U coffee` picks the login role,
+  `-d coffee_shot` the target database, `-c "..."` means "run this one
+  command non-interactively and exit." `\d shots` is a **psql meta-command**
+  (client-side, not real SQL — anything starting with `\` is handled by
+  `psql` itself) that prints a table's columns, types, nullability, and
+  constraints.
+
+**Problems encountered:** First `psql` attempt used `-U postgres` (the
+image's usual default role name) and failed with `role "postgres" does not
+exist`. Root cause: this project's `.env` sets a custom `POSTGRES_USER=coffee`
+(not the default), which `docker-compose.yml` passes through as the actual
+role created on first container startup — `postgres` was never created at
+all. Fixed by checking `.env` and rerunning with `-U coffee`. Worth
+remembering: any future ad-hoc `psql`/`docker compose exec` command against
+this project's DB needs `-U coffee`, not the Postgres default.
+
+**Verified:** `\d shots` output confirmed all 10 columns, types, and
+nullability match the `Shot` model exactly; `shots_bean_id_fkey` FOREIGN KEY
+`(bean_id)` correctly REFERENCES `beans(id)`; `shots_id_seq` backs the `id`
+primary key the same way `beans_id_seq` does for `Bean`.
+
+**Still uncommitted** on `feature/shots-slice`: `app/models/shot.py`,
+`app/models/__init__.py`, `docs/CONTEXT.md`, and now
+`alembic/versions/8191f7b2a8cf_add_shots_table.py`. `docs/DECISIONS_LOG.md`
+itself is also always uncommitted mid-session, by nature.
+
+**Next:** Pydantic schemas (`app/schemas/shot.py`) — `ShotCreate`/`ShotRead`,
+mirroring `app/schemas/bean.py`'s pattern. Then service → router → tests,
+same branch/PR.
+
+---
+
+## 2026-09-11/14 — Step 6 finished: schemas, service, router, and tests
+
+**Worked on:** Finished the Shots vertical slice in full — the pattern is
+now documented generally in a new `docs/NEW_MODULE_GUIDE.md` (a reusable
+step-by-step checklist for adding any future resource, written from what
+actually happened across the Beans and Shots slices).
+
+- `app/schemas/shot.py` (`ShotBase`/`ShotCreate`/`ShotRead`, mirroring Bean's
+  three-class split; `notes: str | None = None` is the only optional field).
+  Sanity-checked `ShotRead.model_validate()` against a real in-memory `Shot`
+  instance and confirmed `ShotCreate` defaults `notes` to `None` when
+  omitted.
+- `app/services/shot.py` (`create_shot`/`list_shots`/`get_shot`, identical
+  shape to Bean's service functions). Verified live against the real dev
+  database (not just imports) — created a shot against the one existing
+  manually-tested bean, read it back by id, listed it.
+- `app/routers/shot.py` (`POST /shots`, `GET /shots`, `GET /shots/{shot_id}`,
+  wired into `main.py`). Manually verified end-to-end by starting the dev
+  server and hitting all three routes with `curl` (create → `201` with
+  generated `id`/`created_at`, list → `200` newest-first, get-by-id → `200`,
+  get-missing-id → `404 {"detail": "Shot not found"}`), plus confirmed both
+  paths appear in `/openapi.json`. Two real `Shot` rows now exist in the dev
+  DB from this verification pass, alongside the earlier manually-created
+  bean — expected scratch data, not cleaned up.
+- `tests/test_shots.py` (4 tests, mirroring `test_beans.py`'s pattern:
+  create-201, list-shows-created, get-by-id-matches, get-missing-404). One
+  structural difference from Beans: every shot test needs a real bean to
+  exist first (`bean_id` FK is required), so a `bean_id` pytest fixture
+  creates one bean per test and yields its id — `BEAN_PAYLOAD` couldn't be
+  hardcoded the way it is in `test_beans.py`. All 9 tests pass (5 existing +
+  4 new).
+
+**Decisions:**
+- Kept the service layer minimal (create/list/get only) — deliberately did
+  *not* add a "list shots for a given bean" filtered query even though the
+  new FK makes it natural, since that's Analytics/Compare-phase scope, not
+  this slice's.
+- Flagged but left as-is: `POST /shots` with a nonexistent `bean_id`
+  currently fails at the DB level (FK violation → unhandled `IntegrityError`
+  → default `500`) rather than a clean `404`/`422` — no input-validation
+  layer for FK existence yet. Beans has no equivalent case since it has no
+  foreign keys. Not fixing now — matches "don't build ahead of what's
+  asked."
+
+**Problems encountered:** None blocking. Lint caught two real (expected)
+issues before commit: the migration file's usual `Union[...]` → `X | Y`
+autogenerated-boilerplate style (same as Beans' migration), plus a new one —
+`app/services/__init__.py`'s `__all__` list wasn't alphabetically sorted
+(grouped by resource instead). Both fixed via `ruff check . --fix`; reran
+lint (clean) and the full test suite (9/9 passed) afterward to confirm
+nothing broke.
+
+**This closes out all the code for step 6.** `feature/shots-slice` now has:
+model, migration, schemas, service, router, tests — all written, manually
+verified, and passing lint + pytest. Nothing committed yet.
+
+**Next:** Commit in logical pieces (model+migration, schemas, service,
+router, tests — following `docs/NEW_MODULE_GUIDE.md` step 8), push the
+branch, open the PR, verify CI goes green, self-review, squash-merge, sync
+local `main`, delete the branch. That closes step 6 entirely.
