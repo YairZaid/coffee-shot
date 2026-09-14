@@ -547,3 +547,57 @@ verified, and passing lint + pytest. Nothing committed yet.
 router, tests — following `docs/NEW_MODULE_GUIDE.md` step 8), push the
 branch, open the PR, verify CI goes green, self-review, squash-merge, sync
 local `main`, delete the branch. That closes step 6 entirely.
+
+---
+
+## 2026-09-14 (later) — Notion dev log caught up; commits, PR #6 opened, CI green
+
+**Worked on:** Two threads this session.
+
+**1. Notion dev log caught up.** Read the existing "יומן פיתוח (Dev Log)"
+page and several entries to match tone/format, then added 3 new dated
+subpages covering everything from 2026-09-09 through the end of step 6's
+code (model/yield decision, migration/FK workflow, schemas+service+router+
+tests), written with real commands and outputs, not just summaries. Then,
+per explicit request, updated the now-stale "מצב נוכחי — תחילת שלב 6"
+status page **without deleting or duplicating anything**: renamed it to
+"מצב ב-2026-09-09" (reframed as a historical snapshot instead of a live
+status claim) and inserted three small timestamped "עדכון"/"אושר בפועל"
+notes at the exact spots that had gone stale, each linking forward to the
+relevant new page instead of re-explaining. General pattern worth reusing
+for any future "update this without breaking what's there" request:
+rename for honest framing + targeted append-only inserts + forward links,
+never a rewrite.
+
+**2. Committed, pushed, opened the PR, CI passed.** Split the whole slice
+into 6 commits, same granularity as Beans:
+`feat: add Shot model and shots table migration`,
+`feat: add Shot create/read schemas`, `feat: add Shot service layer`,
+`feat: add Shot router endpoints`, `test: add Shot integration tests`,
+`docs: log shots-slice progress`.
+
+**Decision:** `docs/NEW_MODULE_GUIDE.md` is explicitly **not** committed —
+user called it out as a personal reference doc, not part of the repo's
+history. Added `docs/NEW_MODULE_GUIDE.md` to `.gitignore` (own commit:
+`chore: gitignore the personal new-module reference guide`) so it stops
+showing up as untracked in `git status`, while the file itself stays on
+disk for reading.
+
+Pushed `feature/shots-slice`, opened **PR #6**:
+https://github.com/YairZaid/coffee-shot/pull/6. CI (`backend-tests`)
+passed on the first run — no lint failures this time (the migration's
+usual `Union[...]` issue was already fixed locally before committing,
+unlike the Beans PR where it was only caught in CI).
+
+**Problems encountered:** None.
+
+**Still open:** Self-review the PR diff, squash-merge, sync local `main`,
+delete `feature/shots-slice`. That closes step 6 entirely — paused here
+for the night, picking up with the merge tomorrow.
+
+**Next:** `gh pr merge --squash --delete-branch` on PR #6, verify local
+`main` fast-forwards, prune stale remote-tracking branches. Then decide
+what's next on the roadmap after Beans + Shots (per
+`docs/DECISIONS_LOG.md`'s original MVP scope: likely the Compare/Analytics
+feature next, since it's the first thing that needs both resources
+together).
