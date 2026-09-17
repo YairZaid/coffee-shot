@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class ShotBase(BaseModel):
@@ -23,3 +23,8 @@ class ShotRead(ShotBase):
 
     id: int
     created_at: datetime
+
+    @computed_field
+    @property
+    def ratio(self) -> float:
+        return self.shot_yield / self.dose

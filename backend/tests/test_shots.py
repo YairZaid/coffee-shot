@@ -40,6 +40,7 @@ def test_create_shot_returns_201_with_generated_fields(bean_id: int):
     assert body["bean_id"] == bean_id
     assert body["id"] is not None
     assert body["created_at"] is not None
+    assert body["ratio"] == pytest.approx(40.0 / 18.0)
 
 
 def test_list_shots_returns_created_shot(bean_id: int):
