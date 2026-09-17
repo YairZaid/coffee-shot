@@ -19,7 +19,9 @@ the name alone. Keep entries short.
   Distinct from `duration` (below).
 - **Yield** — mass (grams) of liquid espresso collected out.
 - **Ratio** — `yield ÷ dose` (e.g. 40g yield / 18g dose ≈ 1:2.2). Always derived
-  from `dose` and `yield` — not stored as its own database column.
+  from `dose` and `yield` — not stored as its own database column. Exposed as
+  a computed `ratio` field on `ShotRead` (Pydantic `@computed_field`), added
+  2026-09-17 as the start of the Compare/Analytics slice.
 - **Duration** — total extraction time of the shot, in seconds, from pump-start to
   pump-stop. Distinct from `grind_time`.
 - **Rating** — a numeric quality score (e.g. 1–10) capturing overall shot quality.
