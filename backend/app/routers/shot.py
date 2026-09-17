@@ -15,8 +15,10 @@ def create_shot_route(shot_in: ShotCreate, db: Session = Depends(get_db)) -> Sho
 
 
 @router.get("", response_model=list[ShotRead])
-def list_shots_route(db: Session = Depends(get_db)) -> list[Shot]:
-    return list_shots(db)
+def list_shots_route(
+    bean_id: int | None = None, db: Session = Depends(get_db)
+) -> list[Shot]:
+    return list_shots(db, bean_id)
 
 
 @router.get("/{shot_id}", response_model=ShotRead)

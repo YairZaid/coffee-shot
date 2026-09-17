@@ -13,8 +13,10 @@ def create_shot(db: Session, shot_in: ShotCreate) -> Shot:
     return shot
 
 
-def list_shots(db: Session) -> list[Shot]:
+def list_shots(db: Session, bean_id: int | None = None) -> list[Shot]:
     statement = select(Shot).order_by(Shot.created_at.desc())
+    if bean_id is not None:
+        statement = statement.where(Shot.bean_id == bean_id)
     return list(db.execute(statement).scalars().all())
 
 
