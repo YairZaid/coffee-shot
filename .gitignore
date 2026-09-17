@@ -34,3 +34,6 @@ Thumbs.db
 
 # --- Logs ---
 *.log
+
+# --- Personal reference docs (not part of the repo's history) ---
+docs/NEW_MODULE_GUIDE.md

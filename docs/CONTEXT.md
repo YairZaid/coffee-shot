@@ -31,6 +31,10 @@ the name alone. Keep entries short.
 - **`grind_time` added as its own field on `Shot`** — decided 2026-08-22. It's a
   real, independent variable when dialing in a grinder, and shouldn't be conflated
   with `duration`.
+- **`shot_yield`, not `yield`** — decided 2026-09-10. `yield` is a reserved Python
+  keyword, so it can't be used as a model attribute, schema field, or column name
+  in Python code (`shot.yield` is a syntax error). Applies everywhere the field
+  appears: model, schema, DB column, API payloads.
 
 ## Current `Shot` fields (for reference — source of truth is the actual model once written)
 
