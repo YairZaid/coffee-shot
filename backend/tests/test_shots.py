@@ -19,6 +19,15 @@ def bean_id() -> int:
     return response.json()["id"]
 
 
+@pytest.fixture
+def other_bean_id() -> int:
+    response = client.post(
+        "/beans",
+        json={**BEAN_PAYLOAD, "name": "Other Bean"},
+    )
+    return response.json()["id"]
+
+
 def shot_payload(bean_id: int) -> dict:
     return {
         "bean_id": bean_id,
@@ -52,6 +61,21 @@ def test_list_shots_returns_created_shot(bean_id: int):
     shots = response.json()
     assert len(shots) == 1
     assert shots[0]["bean_id"] == bean_id
+
+
+def test_list_shots_filtered_by_bean_id(bean_id: int, other_bean_id: int):
+    client.post("/shots", json=shot_payload(bean_id))
+    client.post("/shots", json=shot_payload(other_bean_id))
+
+    response = client.get("/shots", params={"bean_id": bean_id})
+
+    assert response.status_code == 200
+    shots = response.json()
+    assert len(shots) == 1
+    assert shots[0]["bean_id"] == bean_id
+
+    unfiltered = client.get("/shots")
+    assert len(unfiltered.json()) == 2
 
 
 def test_get_shot_returns_matching_shot(bean_id: int):
