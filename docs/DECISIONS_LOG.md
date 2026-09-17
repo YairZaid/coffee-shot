@@ -601,3 +601,49 @@ what's next on the roadmap after Beans + Shots (per
 `docs/DECISIONS_LOG.md`'s original MVP scope: likely the Compare/Analytics
 feature next, since it's the first thing that needs both resources
 together).
+
+---
+
+## 2026-09-17 — Compare/Analytics: shots filtered by bean_id (PR #8)
+
+**Worked on:** First piece of the Compare/Analytics feature: added an
+optional `bean_id` query parameter to `GET /shots`, filtering results to
+shots recorded under that bean. This was the exact query explicitly
+deferred during the Shots slice (see 2026-09-11/14 entry) specifically
+because it belonged to this later phase. No model or migration changes —
+pure filter on the existing `list_shots` query — plus one new test
+(`test_list_shots_filtered_by_bean_id`) covering both the filtered and
+unfiltered cases. Verified manually via Swagger (two beans, one shot each,
+filtered vs. unfiltered `GET /shots`) before running the automated suite.
+On branch `feature/shots-filter-by-bean`, split into two commits (`feat:`
+for service+router, `test:` for coverage), CI green
+(`backend-tests: pass`), self-reviewed and squash-merged as PR #8.
+
+**Decision:** Adopted a new collaboration mode for backend work going
+forward, at the user's request: Claude explains the plan first, then hands
+over the exact terminal/Swagger verification commands for the user to run
+and report back, rather than running verification itself. The full
+workflow (the 5-layer vertical-slice pattern, step by step, with the *why*
+behind each command) was documented in Notion under מאגר ידע (Knowledge
+Base) → "תהליך עבודה: הוספת Resource חדש ל-Backend (Vertical Slice)", so
+there's a durable reference for what's happening at each step.
+
+**Problems encountered:**
+- `pytest`/`ruff` console-script launchers in `backend/.venv` failed with
+  `Fatal error in launcher: ... The system cannot find the file specified`.
+  The venv was created back when the project lived at
+  `C:\Users\User\Desktop\coffee-project\...`; every console-script `.exe`
+  hardcodes that absolute path at creation time, and it broke once the
+  project moved to its current OneDrive path. Same root cause as the
+  already-known alembic/uvicorn `.exe` issue, just newly hit for
+  pytest/ruff. Worked around with `python -m pytest` / `python -m ruff
+  check .` — venv not recreated yet, so this will resurface for any other
+  bare console-script invocation.
+- `git remote prune origin` hit a "Deletion of directory ... failed" retry
+  prompt on an old remote-tracking ref-log folder — a OneDrive file-lock
+  artifact, not real data loss. Declined the retry; harmless empty leftover
+  directory.
+
+**Next:** Aggregate stats endpoint per bean (e.g. avg rating, avg ratio,
+shot count) — the next Compare/Analytics piece, building on this same
+bean-scoped query.
