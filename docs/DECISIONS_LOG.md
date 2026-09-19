@@ -647,3 +647,29 @@ there's a durable reference for what's happening at each step.
 **Next:** Aggregate stats endpoint per bean (e.g. avg rating, avg ratio,
 shot count) — the next Compare/Analytics piece, building on this same
 bean-scoped query.
+
+---
+
+## 2026-09-19 — Compare/Analytics: bean stats endpoint (PR #10)
+
+**Worked on:** Second piece of Compare/Analytics: `GET /beans/{bean_id}/stats`,
+returning `shot_count`, `avg_rating`, and `avg_ratio` for a bean. Built as its
+own small vertical slice (`app/schemas/analytics.py`,
+`app/services/analytics.py`, `app/routers/analytics.py`) rather than folding
+into the existing Bean or Shot slices, since this is the first endpoint that
+genuinely needs both resources together. First use of real SQL aggregation
+in this project — `func.count`/`func.avg` computed directly in the query
+(including `func.avg(Shot.shot_yield / Shot.dose)` for the per-shot ratio
+average) instead of pulling rows into Python and looping. A bean with no
+shots returns `avg_rating`/`avg_ratio` as `null` rather than erroring; no
+check that the `bean_id` itself exists, matching the existing precedent of
+not adding FK-existence validation ahead of what's asked. Four commits
+(schema, service, router, tests) on `feature/bean-stats-analytics`,
+CI green, self-reviewed and squash-merged as PR #10.
+
+**Next:** Roadmap-wise, Compare/Analytics now covers per-bean stats; a
+direct shot-to-shot comparison endpoint was discussed and deliberately
+deferred (see 2026-09-17 session) since the stats endpoint covers most of
+the same need. Next real decision point is whether to keep extending the
+backend or start the Next.js frontend, since Beans + Shots + basic Analytics
+now form a usable API surface.
