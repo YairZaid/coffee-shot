@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import bean_router, shot_router
+from app.routers import analytics_router, bean_router, shot_router
 
 
 def create_app() -> FastAPI:
@@ -12,6 +12,7 @@ def create_app() -> FastAPI:
 
     app.include_router(bean_router)
     app.include_router(shot_router)
+    app.include_router(analytics_router)
 
     return app
 
