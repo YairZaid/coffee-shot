@@ -7,6 +7,7 @@
   --text: #20251f;
   --text-muted: #646d60;
   --primary: #a9c977;
+  --soft: #e8ede2;
   --destructive: #b3261e;
   --warning-bg: #fff6d9;
   --warning-border: #e2cb7a;
@@ -20,6 +21,7 @@
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-primary: var(--primary);
+  --color-soft: var(--soft);
   --color-destructive: var(--destructive);
   --color-warning-bg: var(--warning-bg);
   --color-warning-border: var(--warning-border);
