@@ -19,9 +19,11 @@ const RATINGS = Array.from({ length: 10 }, (_, i) => i + 1);
 
 export function QuickLogModal({
   beans,
+  defaultBeanId,
   onClose,
 }: {
   beans: Bean[];
+  defaultBeanId?: number;
   onClose: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -29,7 +31,9 @@ export function QuickLogModal({
     initialState,
   );
   const submittedRef = useRef(false);
-  const [beanId, setBeanId] = useState<number | null>(beans[0]?.id ?? null);
+  const [beanId, setBeanId] = useState<number | null>(
+    defaultBeanId ?? beans[0]?.id ?? null,
+  );
   const [rating, setRating] = useState<number | null>(null);
   const [dose, setDose] = useState("");
   const [yieldVal, setYieldVal] = useState("");
