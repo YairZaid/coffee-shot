@@ -1,5 +1,7 @@
-import { getBeans } from "@/lib/api";
+import { getBeans, getShots } from "@/lib/api";
 import { AddBeanLauncher } from "@/components/AddBeanLauncher";
+import { QuickLogLauncher } from "@/components/QuickLogLauncher";
+import { ShotRow } from "@/components/ShotRow";
 
 export default async function Home() {
   const beans = await getBeans();
@@ -22,12 +24,58 @@ export default async function Home() {
     );
   }
 
+  const shots = await getShots();
+  const recentShots = shots.slice(0, 4);
+  const beanById = new Map(beans.map((bean) => [bean.id, bean]));
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
   return (
-    <div className="p-5">
-      <h1 className="text-2xl font-semibold">Home</h1>
-      <p className="text-text-muted">
-        {beans.length} coffee{beans.length === 1 ? "" : "s"} logged.
-      </p>
+    <div className="flex flex-col gap-5 p-5">
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <div className="text-[12.5px] font-semibold text-text-muted">
+            {today}
+          </div>
+          <h1 className="m-0 text-[28px] font-normal tracking-tight">Home</h1>
+        </div>
+        <QuickLogLauncher
+          beans={beans}
+          label="Log a shot"
+          className="h-11 flex-none rounded-full bg-text px-5 text-[13.5px] font-semibold text-background"
+        />
+      </header>
+
+      <section aria-labelledby="recent-h" className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <h2 id="recent-h" className="m-0 text-[15px] font-semibold">
+            Recent shots
+          </h2>
+        </div>
+        {recentShots.length > 0 ? (
+          <div className="overflow-hidden rounded-xl bg-surface">
+            {recentShots.map((shot) => (
+              <ShotRow
+                key={shot.id}
+                shot={shot}
+                bean={beanById.get(shot.bean_id)}
+                beans={beans}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5 rounded-xl bg-surface px-[18px] py-[22px]">
+            <div className="text-[15px] font-semibold">No shots yet</div>
+            <div className="text-[13.5px] leading-relaxed text-text-muted">
+              Pull a shot, then log it here. Your saved shots will appear in
+              this list.
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
