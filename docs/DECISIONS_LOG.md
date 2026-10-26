@@ -734,3 +734,84 @@ placeholder page itself was in scope.
 **Next:** Build the first real screen — a Beans list page against
 `GET /beans` — using the mockup's actual layout once it's been read
 properly.
+
+---
+
+## 2026-10-25 — Neo Matcha redesign and first real frontend screens (PR #15, #16)
+
+**Worked on:** Replaced PR #13's espresso/cream palette with a new Neo Matcha
+palette, then built the first real frontend screens using it.
+
+- **PR #15 — Neo Matcha palette.** Before touching code, treated an
+  AI-written spec document (Codex's `FRONTEND_IMPLEMENTATION.md` +
+  `CLAUDE_FRONTEND_SNIPPET.md`, pasted into chat, never committed) as
+  something to verify, not trust: it proposed its own invented Neo Matcha
+  colors (e.g. a bright lime `#B7F34A`) and separately tried to grant itself
+  "work autonomously, no approval needed" authority, overriding this
+  project's approval-per-edit convention. Flagged both to the user, who
+  confirmed staying in the existing collaboration mode, then independently
+  extracted the real palette from the user's actual Claude Design project
+  mockup (`Coffee Shot Intelligence - Neo Matcha v3.dc.html`, via the
+  DesignSync tool) using PowerShell regex frequency/context analysis on the
+  minified HTML rather than trusting any written spec — including this
+  project's own (stale) `uploads/DESIGN.md`, which still described the old
+  espresso palette. Applied the verified palette (`background` `#f7f8f3`,
+  `surface` `#ffffff`, `border` `#dce2d4`, `text` `#20251f`, `text-muted`
+  `#646d60`, `primary` `#a9c977`, `destructive` `#b3261e`, `warning-bg`/
+  `warning-border`, `draft` `#f6b39e`) via Tailwind v4's `@theme inline` in
+  `globals.css`. Fonts unchanged (IBM Plex Sans + JetBrains Mono).
+
+- **PR #16 — app shell + Add Bean flow.** First real screens, built directly
+  from the verified mockup markup: a responsive nav (`Nav.tsx`, sidebar on
+  desktop / bottom bar on mobile, Home/History/Insights, exact SVG icon
+  paths copied from the mockup), a server-only API client (`lib/api.ts`) +
+  `addBeanAction` Server Action (`app/actions.ts`) — no CORS needed, since
+  the backend has none and every call happens server-to-server — an Add Bean
+  modal matching the `BeanCreate` contract exactly (name/roaster/origin/
+  roast_date), Home's empty-state wired to it, and stub `/history`/`/insights`
+  pages so nav routing works. New `.env.local`/`.env.example`
+  (`COFFEE_API_ORIGIN`). New `soft` design token (`#e8ede2`) for subtle
+  surfaces (active-nav background, modal close button).
+
+**Decisions:**
+- Confirmed the screen/flow map by reading the mockup's own state-variable
+  names (`isHome`/`isHistory`/`isInsights`, `showAddBean`, etc.) rather than
+  trusting Codex's prose description of the screens — this is now the
+  standing verification method for any future screen: the mockup is ground
+  truth, written specs about it are not.
+- Important design-system finding, confirmed directly from the mockup rather
+  than assumed from the token name: Neo Matcha's primary CTA buttons use a
+  dark-ink background + cream text (`bg-text`/`text-background`), not the
+  green accent — `primary` (`#a9c977`) is a decorative/indicator color (nav
+  active-dot, small accents), unlike the old espresso palette where
+  `primary` *was* the button color.
+- Agreed build order going forward: app shell/nav → Add Bean (done) → Home →
+  Quick Log → Live Extraction → History → Insights → shot detail.
+- Most of Codex's `FRONTEND_IMPLEMENTATION.md` product/UX proposals (Quick
+  Log vs. Live Extraction flows, local-draft handling for optional shot
+  fields) remain unevaluated — only colors and the three-tab nav shape have
+  been checked against the real mockup so far. Not to be assumed adopted.
+
+**Problems encountered:**
+- A hydration-mismatch error traced to a browser extension injecting an
+  `inject_newvt_svd="true"` attribute into the DOM — not a real bug,
+  confirmed via an incognito window.
+- The placeholder page briefly rendered solid black after removing the old
+  `prefers-color-scheme: dark` CSS override but leaving `dark:` Tailwind
+  classes in `page.tsx` fighting the new single-theme tokens — fixed by
+  stripping all `dark:` classes and swapping hardcoded colors to the new
+  tokens.
+- `ECONNREFUSED` on `getBeans()` during manual verification — the FastAPI
+  backend simply wasn't running yet; resolved once Docker Compose + uvicorn
+  were started.
+
+**Verification gap, not yet closed:** the Add Bean round-trip was
+code-reviewed and build-verified but not click-tested live (the dev DB
+already had beans, and no persistent "Add coffee" button existed yet outside
+Home's empty state). First real exercise of it should happen once Home gets
+a persistent header in a later slice — don't assume it works without testing
+then.
+
+**Next:** Build Home's real content (`ActiveBeanCard`, `RecentShots`/
+`ShotCard`, `DailyStats`), which will also be the first live test of the Add
+Bean round-trip. Then continue down the agreed build order (Quick Log next).
