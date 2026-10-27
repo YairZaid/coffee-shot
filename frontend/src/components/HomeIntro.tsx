@@ -98,7 +98,7 @@ export function HomeIntro({ onFinished }: { onFinished: () => void }) {
   const showInteractiveFallback = webglOk === false || canvasFailed;
 
   return (
-    <div className="flex flex-col items-center gap-5 rounded-xl bg-white/55 p-6 backdrop-blur-md">
+    <div className="flex flex-col items-center gap-5 p-6">
       <p className="m-0 text-[15px] font-semibold text-text">
         {greeting ?? "Hello"}
       </p>
