@@ -46,7 +46,13 @@ export function HomeActions({ beans, shots }: { beans: Bean[]; shots: Shot[] }) 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- hydrating from
        localStorage (client-only) after mount is the standard exception */
-    const storedId = Number(localStorage.getItem(BEAN_KEY));
+    let storedId = NaN;
+    try {
+      storedId = Number(localStorage.getItem(BEAN_KEY));
+    } catch {
+      // localStorage can throw (private browsing, storage restrictions) -
+      // fall through to the default bean below instead of getting stuck.
+    }
     const initialBeanId =
       beans.find((b) => b.id === storedId)?.id ?? beans[0]?.id ?? null;
     const loadedRecipes = loadRecipes();
@@ -60,7 +66,12 @@ export function HomeActions({ beans, shots }: { beans: Bean[]; shots: Shot[] }) 
   }, [beans]);
 
   useEffect(() => {
-    if (beanId !== null) localStorage.setItem(BEAN_KEY, String(beanId));
+    if (beanId === null) return;
+    try {
+      localStorage.setItem(BEAN_KEY, String(beanId));
+    } catch {
+      // ignore - remembering the last bean is a convenience, not required
+    }
   }, [beanId]);
 
   useEffect(() => {
