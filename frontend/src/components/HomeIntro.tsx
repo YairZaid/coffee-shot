@@ -69,6 +69,7 @@ export function HomeIntro({ onFinished }: { onFinished: () => void }) {
   const [webglOk, setWebglOk] = useState<boolean | null>(null);
   const [cracking, setCracking] = useState(false);
   const [canvasFailed, setCanvasFailed] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- reading the system
@@ -77,6 +78,18 @@ export function HomeIntro({ onFinished }: { onFinished: () => void }) {
     setWebglOk(hasWebGL());
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  useEffect(() => {
+    // Safety net: if the canvas hasn't confirmed it initialized within a
+    // few seconds (WebGL init stall, chunk load failure, a silent error
+    // inside the render loop that no error boundary can catch), fall back
+    // rather than leaving the user stuck looking at nothing. Once the
+    // canvas is ready, this never fires regardless of how long the user
+    // then spends turning the bean around.
+    if (canvasReady) return;
+    const timeout = setTimeout(() => setCanvasFailed(true), 4000);
+    return () => clearTimeout(timeout);
+  }, [canvasReady]);
 
   function startCrack() {
     setCracking(true);
@@ -107,6 +120,7 @@ export function HomeIntro({ onFinished }: { onFinished: () => void }) {
               cracking={cracking}
               onTap={startCrack}
               onCrackDone={onFinished}
+              onReady={() => setCanvasReady(true)}
             />
           </BeanErrorBoundary>
         )}

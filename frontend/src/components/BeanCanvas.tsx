@@ -231,16 +231,20 @@ export default function BeanCanvas({
   cracking,
   onTap,
   onCrackDone,
+  onReady,
 }: {
   cracking: boolean;
   onTap: () => void;
   onCrackDone: () => void;
+  onReady: () => void;
 }) {
   return (
     <Canvas
       gl={{ alpha: true, antialias: true }}
       camera={{ position: [0, 0, 4], fov: 40 }}
+      dpr={[1, 2]}
       className="!touch-none"
+      onCreated={() => onReady()}
     >
       <ambientLight intensity={0.5} />
       <directionalLight position={[3, 4, 5]} intensity={1.3} />
