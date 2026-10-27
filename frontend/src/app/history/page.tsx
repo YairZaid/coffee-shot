@@ -144,7 +144,7 @@ export default async function HistoryPage({
                     {shot.duration.toFixed(1)} s
                   </span>
                   <span className="text-right font-mono tabular-nums">
-                    {shot.rating}/10
+                    {shot.rating}/5
                   </span>
                 </div>
               );

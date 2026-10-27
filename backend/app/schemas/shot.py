@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class ShotBase(BaseModel):
@@ -10,7 +10,7 @@ class ShotBase(BaseModel):
     grind_time: float
     shot_yield: float
     duration: float
-    rating: int
+    rating: int = Field(ge=1, le=5)
     notes: str | None = None
 
 
