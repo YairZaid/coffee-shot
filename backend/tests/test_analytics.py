@@ -47,10 +47,10 @@ def test_bean_stats_returns_zero_state_for_bean_without_shots(bean_id: int):
 
 def test_bean_stats_returns_averages_for_bean_with_shots(bean_id: int):
     client.post(
-        "/shots", json=shot_payload(bean_id, dose=18.0, shot_yield=36.0, rating=8)
+        "/shots", json=shot_payload(bean_id, dose=18.0, shot_yield=36.0, rating=4)
     )
     client.post(
-        "/shots", json=shot_payload(bean_id, dose=20.0, shot_yield=44.0, rating=6)
+        "/shots", json=shot_payload(bean_id, dose=20.0, shot_yield=44.0, rating=3)
     )
 
     response = client.get(f"/beans/{bean_id}/stats")
@@ -59,5 +59,5 @@ def test_bean_stats_returns_averages_for_bean_with_shots(bean_id: int):
     body = response.json()
     assert body["bean_id"] == bean_id
     assert body["shot_count"] == 2
-    assert body["avg_rating"] == pytest.approx(7.0)
+    assert body["avg_rating"] == pytest.approx(3.5)
     assert body["avg_ratio"] == pytest.approx((36.0 / 18.0 + 44.0 / 20.0) / 2)

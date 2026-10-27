@@ -73,7 +73,7 @@ export default async function Home() {
           <h1 className="m-0 text-[28px] font-normal tracking-tight">Home</h1>
         </header>
 
-        <HomeActions beans={beans} />
+        <HomeActions beans={beans} shots={shots} />
 
         <section aria-labelledby="recent-h" className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between">

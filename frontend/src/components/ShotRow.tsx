@@ -30,7 +30,7 @@ export function ShotRow({
         </div>
       </div>
       <div className="flex h-7 min-w-[46px] items-center justify-center rounded-full bg-soft font-mono text-[12.5px] font-medium">
-        {shot.rating}/10
+        {shot.rating}/5
       </div>
     </div>
   );

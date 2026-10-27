@@ -15,7 +15,7 @@ const NUMERIC_FIELDS = [
   { name: "duration", label: "Duration", unit: "s" },
 ] as const;
 
-const RATINGS = Array.from({ length: 10 }, (_, i) => i + 1);
+const RATINGS = Array.from({ length: 5 }, (_, i) => i + 1);
 
 export function QuickLogModal({
   beans,
@@ -165,7 +165,7 @@ export function QuickLogModal({
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-semibold">Rating</span>
               <span className="text-[12.5px] text-text-muted">
-                {rating ? `${rating}/10` : "Not rated"}
+                {rating ? `${rating}/5` : "Not rated"}
               </span>
             </div>
             <div className="grid grid-cols-5 gap-1.5">
@@ -187,7 +187,7 @@ export function QuickLogModal({
             </div>
             <div className="flex justify-between text-xs text-text-muted">
               <span>1 &middot; undrinkable</span>
-              <span>10 &middot; excellent</span>
+              <span>5 &middot; excellent</span>
             </div>
           </div>
 

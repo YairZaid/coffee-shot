@@ -98,7 +98,7 @@ export default async function InsightsPage({
               <span className="text-sm font-semibold">Average rating</span>
               <span className="font-mono text-2xl font-light">
                 {stats.avg_rating?.toFixed(1)}
-                <span className="text-sm font-medium text-text-muted"> / 10</span>
+                <span className="text-sm font-medium text-text-muted"> / 5</span>
               </span>
             </div>
             <div className="flex items-baseline justify-between border-t border-border px-[18px] py-4">

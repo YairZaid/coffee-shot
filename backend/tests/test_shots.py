@@ -36,7 +36,7 @@ def shot_payload(bean_id: int) -> dict:
         "grind_time": 12.5,
         "shot_yield": 40.0,
         "duration": 28.0,
-        "rating": 8,
+        "rating": 4,
         "notes": "test shot",
     }
 
